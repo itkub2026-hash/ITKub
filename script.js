@@ -1,4 +1,5 @@
-const API_URL = "http://localhost:5000";
+// ИНИЦИАЛИЗАЦИЯ EMAILJS — ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ
+emailjs.init("GIsbyEu7NbuW9aNPz");
 
 function showToast(message, isError = false) {
   const toast = document.createElement('div');
@@ -114,7 +115,6 @@ function clearFieldError(inputId) {
 }
 
 let pendingConfirmCallback = null;
-let pendingUpdateFunction = null; // Храним функцию обновления счётчика
 
 function showCodeModal(inviteCode, onConfirm) {
   pendingConfirmCallback = onConfirm;
@@ -211,9 +211,7 @@ window.submitCode = function(inviteCode) {
   
   window.closeCodeModal();
   
-  // Показываем окно успеха
   showSuccessModal(function() {
-    // ВАЖНО: здесь вызываем колбэк, который обновляет счётчик
     if (pendingConfirmCallback) {
       pendingConfirmCallback();
       pendingConfirmCallback = null;
@@ -221,24 +219,32 @@ window.submitCode = function(inviteCode) {
   });
 };
 
+// ОТПРАВКА ПИСЬМА ЧЕРЕЗ EMAILJS — ЗАМЕНИТЕ SERVICE_ID И TEMPLATE_ID
 async function sendCodeToEmail(email, code, teamName, eventTitle) {
   try {
-    const response = await fetch(`${API_URL}/send-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code, teamName, eventTitle })
-    });
-    const data = await response.json();
-    if (data.status === 'ok') {
+    const templateParams = {
+      to_email: email,
+      event_title: eventTitle,
+      team_name: teamName,
+      invite_code: code
+    };
+    
+    const response = await emailjs.send(
+      "service_5rxtegf",  // ЗАМЕНИТЕ на ваш Service ID
+      "template_w1eqcj4", // ЗАМЕНИТЕ на ваш Template ID
+      templateParams
+    );
+    
+    if (response.status === 200) {
       showToast(`Код отправлен на ${email}`);
       return true;
     } else {
-      showToast(`Ошибка: ${data.message}`, true);
+      showToast(`Ошибка отправки`, true);
       return false;
     }
   } catch (error) {
-    console.error('Ошибка отправки:', error);
-    showToast(`Не удалось отправить письмо. Сервер запущен?`, true);
+    console.error('Ошибка EmailJS:', error);
+    showToast(`Не удалось отправить письмо. Проверьте настройки EmailJS`, true);
     return false;
   }
 }
@@ -379,23 +385,18 @@ function renderDetailPage() {
       const emailSent = await sendCodeToEmail(email, inviteCode, teamNameSaved, currentEvent.title);
       if (!emailSent) return;
       
-      // Сохраняем callback для обновления счётчика
       const updateCounter = function() {
-        // Увеличиваем счётчик
         if (currentEvent.id !== 3 && currentEvent.freePlaces < currentEvent.totalPlaces) {
           currentEvent.freePlaces++;
         }
         
-        // Обновляем глобальный массив
         const globalEvent = events.find(e => e.id === currentEvent.id);
         if (globalEvent) {
           globalEvent.freePlaces = currentEvent.freePlaces;
         }
         
-        // Обновляем статус
         updateEventUI(currentEvent);
         
-        // Обновляем отображение мест на детальной странице
         const placesSpan = document.getElementById('detail-free-places');
         if (placesSpan) {
           placesSpan.textContent = currentEvent.freePlaces;
@@ -403,7 +404,6 @@ function renderDetailPage() {
           placesSpan.className = newIsClosed ? 'text-red-400' : 'text-emerald-400';
         }
         
-        // Обновляем кнопку регистрации
         const submitBtn = document.querySelector('#reg-form button[type="submit"]');
         if (submitBtn && ((currentEvent.freePlaces >= currentEvent.totalPlaces) || currentEvent.id === 3)) {
           submitBtn.disabled = true;
@@ -412,7 +412,6 @@ function renderDetailPage() {
           submitBtn.textContent = 'Регистрация закрыта';
         }
         
-        // Обновляем статус-бейдж
         const statusBadge = document.querySelector('#event-detail-content .bg-emerald-500, #event-detail-content .bg-red-500');
         if (statusBadge && ((currentEvent.freePlaces >= currentEvent.totalPlaces) || currentEvent.id === 3)) {
           statusBadge.classList.remove('bg-emerald-500');
@@ -420,11 +419,9 @@ function renderDetailPage() {
           statusBadge.textContent = 'Регистрация закрыта';
         }
         
-        // Перерисовываем карточки на главной
         renderEvents();
       };
       
-      // Показываем окно для ввода кода
       showCodeModal(inviteCode, updateCounter);
     });
   }

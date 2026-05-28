@@ -1,4 +1,4 @@
-// ИНИЦИАЛИЗАЦИЯ EMAILJS — ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ
+// ИНИЦИАЛИЗАЦИЯ EMAILJS
 emailjs.init("GIsbyEu7NbuW9aNPz");
 
 function showToast(message, isError = false) {
@@ -219,32 +219,37 @@ window.submitCode = function(inviteCode) {
   });
 };
 
-// ОТПРАВКА ПИСЬМА ЧЕРЕЗ EMAILJS — ЗАМЕНИТЕ SERVICE_ID И TEMPLATE_ID
+// ОТПРАВКА ПИСЬМА ЧЕРЕЗ EMAILJS (ИСПРАВЛЕНО)
 async function sendCodeToEmail(email, code, teamName, eventTitle) {
   try {
     const templateParams = {
-      to_email: email,
       event_title: eventTitle,
       team_name: teamName,
       invite_code: code
     };
     
+    console.log("Отправка письма на:", email);
+    console.log("Параметры шаблона:", templateParams);
+    
     const response = await emailjs.send(
-      "service_5rxtegf",  // ЗАМЕНИТЕ на ваш Service ID
-      "template_w1eqcj4", // ЗАМЕНИТЕ на ваш Template ID
-      templateParams
+      "service_5rxtegf",
+      "template_w1eqcj4",
+      templateParams,
+      email  // Email получателя (4-й параметр)
     );
+    
+    console.log("Ответ EmailJS:", response);
     
     if (response.status === 200) {
       showToast(`Код отправлен на ${email}`);
       return true;
     } else {
-      showToast(`Ошибка отправки`, true);
+      showToast(`Ошибка отправки: ${response.text}`, true);
       return false;
     }
   } catch (error) {
     console.error('Ошибка EmailJS:', error);
-    showToast(`Не удалось отправить письмо. Проверьте настройки EmailJS`, true);
+    showToast(`Ошибка: ${error.text || error.message}`, true);
     return false;
   }
 }

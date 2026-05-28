@@ -1,4 +1,4 @@
-// ИНИЦИАЛИЗАЦИЯ EMAILJS
+// ИНИЦИАЛИЗАЦИЯ EMAILJS — НОВЫЙ PUBLIC KEY
 emailjs.init("ZJAxGm6oxlmWKh3Z_");
 
 function showToast(message, isError = false) {
@@ -219,7 +219,7 @@ window.submitCode = function(inviteCode) {
   });
 };
 
-// ОТПРАВКА ПИСЬМА ЧЕРЕЗ EMAILJS (ИСПРАВЛЕНО)
+// ОТПРАВКА ПИСЬМА ЧЕРЕЗ EMAILJS
 async function sendCodeToEmail(email, code, teamName, eventTitle) {
   try {
     const templateParams = {
@@ -235,7 +235,7 @@ async function sendCodeToEmail(email, code, teamName, eventTitle) {
       "service_5rxtegf",
       "template_w1eqcj4",
       templateParams,
-      email  // Email получателя (4-й параметр)
+      email
     );
     
     console.log("Ответ EmailJS:", response);

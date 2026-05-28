@@ -1,5 +1,5 @@
 // ИНИЦИАЛИЗАЦИЯ EMAILJS
-emailjs.init("GIsbyEu7NbuW9aNPz");
+emailjs.init("ZJAxGm6oxlmWKh3Z_");
 
 function showToast(message, isError = false) {
   const toast = document.createElement('div');

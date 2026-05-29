@@ -1,6 +1,11 @@
-// ИНИЦИАЛИЗАЦИЯ EMAILJS — НОВЫЙ PUBLIC KEY
-emailjs.init("ZJAxGm6oxlmWKh3Z_");
+// ============================================================
+// НАСТРОЙКИ
+// ============================================================
+const VERCEL_URL = 'https://itcube-2fa.vercel.app';
 
+// ============================================================
+// ТОСТЫ
+// ============================================================
 function showToast(message, isError = false) {
   const toast = document.createElement('div');
   toast.style.position = 'fixed';
@@ -20,6 +25,9 @@ function showToast(message, isError = false) {
   setTimeout(() => toast.remove(), 3000);
 }
 
+// ============================================================
+// ДАННЫЕ МЕРОПРИЯТИЙ
+// ============================================================
 let events = [
   {
     id: 1,
@@ -77,6 +85,9 @@ let events = [
   }
 ];
 
+// ============================================================
+// ВАЛИДАЦИЯ
+// ============================================================
 function validatePhone(phone) {
   const digits = phone.replace(/\D/g, '');
   if (digits.length !== 11) return false;
@@ -114,6 +125,36 @@ function clearFieldError(inputId) {
   if (error) error.remove();
 }
 
+// ============================================================
+// ОТПРАВКА КОДА ЧЕРЕЗ VERCEL
+// ============================================================
+async function sendCodeToEmail(email, code, teamName, eventTitle) {
+  try {
+    const response = await fetch(`${VERCEL_URL}/api/send-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast(`Код отправлен на ${email}`);
+      return true;
+    } else {
+      showToast(`Ошибка: ${data.error}`, true);
+      return false;
+    }
+  } catch (error) {
+    console.error('Ошибка:', error);
+    showToast('Сервер недоступен. Попробуйте позже.', true);
+    return false;
+  }
+}
+
+// ============================================================
+// МОДАЛКИ
+// ============================================================
 let pendingConfirmCallback = null;
 
 function showCodeModal(inviteCode, onConfirm) {
@@ -155,6 +196,48 @@ window.closeCodeModal = function() {
   pendingConfirmCallback = null;
 };
 
+window.submitCode = async function(inviteCode) {
+  const input = document.getElementById('modal-code-input');
+  const userCode = input ? input.value.toUpperCase().trim() : '';
+  const email = document.getElementById('email').value.trim();
+  
+  const response = await fetch(`${VERCEL_URL}/api/verify-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code: userCode })
+  });
+  
+  const data = await response.json();
+  
+  if (!data.success) {
+    if (input) {
+      input.classList.add('border-red-500');
+      let err = document.getElementById('modal-error');
+      if (!err) {
+        err = document.createElement('div');
+        err.id = 'modal-error';
+        err.className = 'text-red-400 text-sm text-center mt-2';
+        err.innerHTML = '<i class="fas fa-exclamation-circle"></i> Неверный код!';
+        input.parentNode.insertBefore(err, input.nextSibling);
+      }
+      setTimeout(() => {
+        input.classList.remove('border-red-500');
+        input.style.borderColor = '';
+      }, 500);
+    }
+    return;
+  }
+  
+  window.closeCodeModal();
+  
+  showSuccessModal(function() {
+    if (pendingConfirmCallback) {
+      pendingConfirmCallback();
+      pendingConfirmCallback = null;
+    }
+  });
+};
+
 function showSuccessModal(onClose) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -186,74 +269,9 @@ window.closeSuccessModal = function() {
   }
 };
 
-window.submitCode = function(inviteCode) {
-  const input = document.getElementById('modal-code-input');
-  const userCode = input ? input.value.toUpperCase().trim() : '';
-  
-  if (userCode !== inviteCode) {
-    if (input) {
-      input.classList.add('border-red-500');
-      let err = document.getElementById('modal-error');
-      if (!err) {
-        err = document.createElement('div');
-        err.id = 'modal-error';
-        err.className = 'text-red-400 text-sm text-center mt-2';
-        err.innerHTML = '<i class="fas fa-exclamation-circle"></i> Неверный код!';
-        input.parentNode.insertBefore(err, input.nextSibling);
-      }
-      setTimeout(() => {
-        input.classList.remove('border-red-500');
-        input.style.borderColor = '';
-      }, 500);
-    }
-    return;
-  }
-  
-  window.closeCodeModal();
-  
-  showSuccessModal(function() {
-    if (pendingConfirmCallback) {
-      pendingConfirmCallback();
-      pendingConfirmCallback = null;
-    }
-  });
-};
-
-// ОТПРАВКА ПИСЬМА ЧЕРЕЗ EMAILJS
-async function sendCodeToEmail(email, code, teamName, eventTitle) {
-  try {
-    const templateParams = {
-      event_title: eventTitle,
-      team_name: teamName,
-      invite_code: code
-    };
-    
-    console.log("Отправка письма на:", email);
-    console.log("Параметры шаблона:", templateParams);
-    
-    const response = await emailjs.send(
-      "service_5rxtegf",
-      "template_w1eqcj4",
-      templateParams,
-      email
-    );
-    
-    console.log("Ответ EmailJS:", response);
-    
-    if (response.status === 200) {
-      showToast(`Код отправлен на ${email}`);
-      return true;
-    } else {
-      showToast(`Ошибка отправки: ${response.text}`, true);
-      return false;
-    }
-  } catch (error) {
-    console.error('Ошибка EmailJS:', error);
-    showToast(`Ошибка: ${error.text || error.message}`, true);
-    return false;
-  }
-}
-
+// ============================================================
+// ОТОБРАЖЕНИЕ МЕРОПРИЯТИЙ
+// ============================================================
 function updateEventUI(event) {
   if (event.id === 3) {
     event.status.text = "Регистрация закрыта";
@@ -301,6 +319,9 @@ function renderEvents() {
   });
 }
 
+// ============================================================
+// ДЕТАЛЬНАЯ СТРАНИЦА
+// ============================================================
 let currentEvent = null;
 
 function showEventDetail(id) {
@@ -320,6 +341,7 @@ function renderDetailPage() {
   
   let directionsHTML = event.directions.map(dir => `<span class="bg-gray-800 text-gray-300 px-5 py-3 rounded-2xl text-sm">${dir}</span>`).join('');
   let casesHTML = `<h3 class="text-xl font-semibold mb-4 mt-12">Кейсы</h3><ol class="space-y-3 list-decimal pl-5">${event.cases.map(c => `<li class="text-gray-300">${c}</li>`).join('')}</ol>`;
+  
   document.getElementById('event-detail-content').innerHTML = `
     <div class="p-8 md:p-12">
       <div class="flex gap-3 mb-6">
@@ -439,6 +461,9 @@ function backToHome() {
   renderEvents();
 }
 
+// ============================================================
+// ЗАПУСК
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
   renderEvents();
 });

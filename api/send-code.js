@@ -1,5 +1,3 @@
-const nodemailer = require('nodemailer');
-
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,7 +11,6 @@ module.exports = async (req, res) => {
 
   const code = Math.floor(10000 + Math.random() * 90000).toString();
 
-  // Сохраняем код в Upstash Redis
   await fetch(
     'https://apparent-leech-40158.upstash.io/set/' + email + '/' + code + '?EX=300',
     {
@@ -23,26 +20,27 @@ module.exports = async (req, res) => {
     }
   );
 
-  // Отправляем письмо через Яндекс SMTP
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.yandex.ru',
-    port: 465,
-    secure: true,
-    auth: {
-      user: 'ITKub2026@yandex.com',
-      pass: 'mqbbyeckqtpsiwuz'
-    }
+  const params = new URLSearchParams({
+    format: 'json',
+    api_key: '6setnrafq34frx4jr4dc4w66tyb5w3bh189sgtfe',
+    email: email,
+    sender_name: 'IT-КУБ',
+    sender_email: 'itkub2026@gmail.com',
+    subject: 'Код подтверждения регистрации',
+    body: '<h2>Код подтверждения регистрации</h2><p style="font-size:28px;letter-spacing:4px;"><strong>' + code + '</strong></p><p>Код действителен 5 минут.</p>'
   });
 
-  try {
-    await transporter.sendMail({
-      from: 'ITKub2026@yandex.com',
-      to: email,
-      subject: 'Код подтверждения регистрации',
-      html: '<h2>Код подтверждения регистрации</h2><p style="font-size:28px;letter-spacing:4px;"><strong>' + code + '</strong></p><p>Код действителен 5 минут.</p>'
-    });
+  const unisenderResponse = await fetch('https://api.unisender.com/ru/api/sendEmail?format=json', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+
+  const data = await unisenderResponse.json();
+
+  if (data.result) {
     res.status(200).json({ success: true });
-  } catch (err) {
+  } else {
     await fetch(
       'https://apparent-leech-40158.upstash.io/del/' + email,
       {

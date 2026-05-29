@@ -1,7 +1,4 @@
 {
   "name": "itcube-2fa",
-  "version": "1.0.0",
-  "dependencies": {
-    "nodemailer": "^6.9.0"
-  }
+  "version": "1.0.0"
 }
